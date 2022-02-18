@@ -10,6 +10,7 @@ edition = "2021"
 [dependencies]
 bytes = "1" # networking buffer library
 dashmap = "5.1.0" # cocurrent HashMap
+http = "0.2.6" # HTTP status code
 prost = "0.9.0" # protobuf library
 thiserror = "1"
 tracing = "0.1" # the simple log library
