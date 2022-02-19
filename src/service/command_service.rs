@@ -251,10 +251,7 @@ mod tests {
             RequestData::Hmdel(v) => v.execute(store),
             RequestData::Hexists(v) => v.execute(store),
             RequestData::Hmexists(v) => v.execute(store),
-            v => {
-                println!("{:?}", v);
-                unimplemented!()
-            },
+            _ => unimplemented!(),
         }
     }
 

@@ -3,3 +3,6 @@ A simple structured key-value server in Rust, originated from [tyrchen's work](h
 
 ![server structure](./img/rfc793.webp)
 
+# See also
+- [tyrchen's Rust Github Repo](https://github.com/tyrchen/geektime-rust)
+- [Mini Lust Tutorial](https://github.com/mini-lust/tutorials)

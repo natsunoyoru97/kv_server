@@ -110,6 +110,16 @@ impl Kvpair {
     }
 }
 
+/// (String, Value) -> Kvpair
+impl From<(String, Value)> for Kvpair {
+    fn from(t: (String, Value)) -> Self {
+        Self {
+            key: t.0.into(),
+            value: Some(t.1),
+        }
+    }
+}
+
 /// String -> Value
 impl From<String> for Value {
     fn from(s: String) -> Self {
