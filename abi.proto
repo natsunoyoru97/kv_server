@@ -5,15 +5,28 @@ package abi;
 // 来自客户端的命令请求
 message CommandRequest {
     oneof request_data {
+        // Get a key from a table, return with a value
         Hget hget = 1;
+        // Get all key-value pairs from the table
         Hgetall hgetall = 2;
+        // Get multiple keys, and return their values
         Hmget hmget = 3;
+        // Store a key-value pair in a table.
+        // If the table does not exist, then it will be created.
         Hset hset = 4;
+        // Store multiple key-value pairs in a table.
+        // If the table does not exist, then it will be created.
         Hmset hmset = 5;
+        // Delete a key from a table,
+        // and return the pervious key.
         Hdel hdel = 6;
+        // Delete multiple keys from a table,
+        // and return the pervious keys.
         Hmdel hmdel = 7;
-        Hexist hexist = 8;
-        Hmexist hmexist = 9;
+        // Check if the key exists in the table.
+        Hexists hexists = 8;
+        // Check if multiple keys exist in the table.
+        Hmexists hmexists = 9;
     }
 }
 
@@ -31,7 +44,9 @@ message CommandResponse {
 
 // 从 table 中获取一个 key，返回 value
 message Hget {
+    // The table to cope with
     string table = 1;
+    // The key to cope with
     string key = 2;
 }
 
@@ -78,7 +93,7 @@ message Hmset {
 // 从 table 中删除一个 key，返回它之前的值
 message Hdel {
     string table = 1;
-    repeated string keys = 2;
+    string key = 2;
 }
 
 // 从 table 中删除一组 key，返回它们之前的值
@@ -88,13 +103,13 @@ message Hmdel {
 }
 
 // 查看 key 是否存在
-message Hexist {
+message Hexists {
     string table = 1;
     string key = 2;
 }
 
 // 查看一组 key 是否存在
-message Hmexist {
+message Hmexists {
     string table = 1;
     repeated string keys = 2;
 }

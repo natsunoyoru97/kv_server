@@ -10,24 +10,37 @@ pub mod command_request {
     #[derive(PartialOrd)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum RequestData {
+        /// Get a key from a table, return with a value
         #[prost(message, tag="1")]
         Hget(super::Hget),
+        /// Get all key-value pairs from the table
         #[prost(message, tag="2")]
         Hgetall(super::Hgetall),
+        /// Get multiple keys, and return their values
         #[prost(message, tag="3")]
         Hmget(super::Hmget),
+        /// Store a key-value pair in a table.
+        /// If the table does not exist, then it will be created.
         #[prost(message, tag="4")]
         Hset(super::Hset),
+        /// Store multiple key-value pairs in a table.
+        /// If the table does not exist, then it will be created.
         #[prost(message, tag="5")]
         Hmset(super::Hmset),
+        /// Delete a key from a table,
+        /// and return the pervious key.
         #[prost(message, tag="6")]
         Hdel(super::Hdel),
+        /// Delete multiple keys from a table,
+        /// and return the pervious keys.
         #[prost(message, tag="7")]
         Hmdel(super::Hmdel),
+        /// Check if the key exists in the table.
         #[prost(message, tag="8")]
-        Hexist(super::Hexist),
+        Hexists(super::Hexists),
+        /// Check if multiple keys exist in the table.
         #[prost(message, tag="9")]
-        Hmexist(super::Hmexist),
+        Hmexists(super::Hmexists),
     }
 }
 /// 服务器的响应
@@ -51,8 +64,10 @@ pub struct CommandResponse {
 #[derive(PartialOrd)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Hget {
+    /// The table to cope with
     #[prost(string, tag="1")]
     pub table: ::prost::alloc::string::String,
+    /// The key to cope with
     #[prost(string, tag="2")]
     pub key: ::prost::alloc::string::String,
 }
@@ -131,8 +146,8 @@ pub struct Hmset {
 pub struct Hdel {
     #[prost(string, tag="1")]
     pub table: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag="2")]
-    pub keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag="2")]
+    pub key: ::prost::alloc::string::String,
 }
 /// 从 table 中删除一组 key，返回它们之前的值
 #[derive(PartialOrd)]
@@ -146,7 +161,7 @@ pub struct Hmdel {
 /// 查看 key 是否存在
 #[derive(PartialOrd)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Hexist {
+pub struct Hexists {
     #[prost(string, tag="1")]
     pub table: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
@@ -155,7 +170,7 @@ pub struct Hexist {
 /// 查看一组 key 是否存在
 #[derive(PartialOrd)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Hmexist {
+pub struct Hmexists {
     #[prost(string, tag="1")]
     pub table: ::prost::alloc::string::String,
     #[prost(string, repeated, tag="2")]

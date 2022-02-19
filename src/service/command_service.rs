@@ -10,6 +10,19 @@ impl CommandService for Hget {
     }
 }
 
+impl CommandService for Hmget {
+    fn execute(self, store: &impl Storage) -> CommandResponse {
+        self.keys
+            .iter()
+            .map(|key| match store.get(&self.table, key) {
+                Ok(Some(v)) => v,
+                _ => Value::default(),
+            })
+            .collect::<Vec<_>>()
+            .into()
+    }
+}
+
 impl CommandService for Hgetall {
     fn execute(self, store: &impl Storage) -> CommandResponse {
         match store.get_all(&self.table) {
@@ -32,6 +45,66 @@ impl CommandService for Hset {
     }
 }
 
+impl CommandService for Hmset {
+    fn execute(self, store: &impl Storage) -> CommandResponse {
+        let table = self.table;
+        self.pairs
+            .into_iter()
+            .map(|pair| match store.set(&table, pair.key, pair.value.unwrap_or_default()) {
+                Ok(Some(v)) => v,
+                _ => Value::default(),
+            })
+            .collect::<Vec<_>>()
+            .into()
+    }
+}
+
+impl CommandService for Hdel {
+    fn execute(self, store: &impl Storage) -> CommandResponse {
+        match store.del(&self.table, self.key.as_str()) {
+            Ok(Some(v)) => v.into(),
+            Ok(None) => Value::default().into(),
+            Err(e) => e.into(),
+        }
+    }
+}
+
+impl CommandService for Hmdel {
+    fn execute(self, store: &impl Storage) -> CommandResponse {
+        self.keys
+            .iter()
+            .map(|key| match store.del(&self.table, key.as_str()) {
+                Ok(Some(v)) => v.into(),
+                _ => Value::default(),
+            })
+            .collect::<Vec<_>>()
+            .into()
+    }
+}
+
+impl CommandService for Hexists {
+    fn execute(self, store: &impl Storage) -> CommandResponse {
+        match store.contains(&self.table, self.key.as_str()) {
+            Ok(v) => v.into(),
+            Err(e) => e.into(), 
+        }
+    }
+}
+
+impl CommandService for Hmexists {
+    fn execute(self, store: &impl Storage) -> CommandResponse {
+        let table = self.table;
+        self.keys
+            .into_iter()
+            .map(|key| match store.contains(table.as_str(), key.as_str()) {
+                Ok(v) => v.into(),
+                _ => Value::default(), 
+            })
+            .collect::<Vec<_>>()
+            .into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -43,6 +116,17 @@ mod tests {
         let cmd = CommandRequest::new_hset("t1", "hello", "world".into());
         let res = dispatch(cmd.clone(), &store);
         assert_res_ok(res, &[Value::default()], &[]);
+    }
+
+    #[test]
+    fn hmset_should_work() {
+        let store = MemTable::new();
+        let cmd = CommandRequest::new_hmset(
+            "t1", 
+            vec![Kvpair::new("hello", "world".into()), Kvpair::new("hello", "natsu".into())]
+        );
+        let res = dispatch(cmd.clone(), &store);
+        assert_res_ok(res, &[Value::default(), "world".into()], &[]);
     }
 
     #[test]
@@ -61,6 +145,19 @@ mod tests {
         let cmd = CommandRequest::new_hget("score", "u1");
         let res = dispatch(cmd, &store);
         assert_res_error(res, 404, "Not found");
+    }
+
+    #[test]
+    fn hmget_should_work() {
+        let store = MemTable::new();
+        let cmd = CommandRequest::new_hmset(
+            "score", 
+            vec![Kvpair::new("u1", 10.into()), Kvpair::new("u2", 8.into())]
+        );
+        dispatch(cmd, &store);
+        let cmd = CommandRequest::new_hmget("score", vec!["u1".to_owned(), "u2".to_owned()]);
+        let res = dispatch(cmd, &store);
+        assert_res_ok(res, &[10.into(), 8.into()], &[]);
     }
 
     #[test]
@@ -86,12 +183,78 @@ mod tests {
         assert_res_ok(res, &[], pairs);
     }
 
+    #[test]
+    fn hdel_should_work() {
+        let store = MemTable::new();
+        let cmd = CommandRequest::new_hset("score", "u1", 30.into());
+        dispatch(cmd, &store);
+        let cmd = CommandRequest::new_hdel("score", "u1");
+        let res = dispatch(cmd, &store);
+        assert_res_ok(res, &[30.into()], &[]);
+    }
+
+    #[test]
+    fn hmdel_should_work() {
+        let store = MemTable::new();
+        let cmd = CommandRequest::new_hmset(
+            "score",
+            vec![Kvpair::new("u1", 10.into()), Kvpair::new("u2", 8.into())]
+        );
+        dispatch(cmd, &store);
+        let cmd = CommandRequest::new_hmdel(
+            "score", 
+            vec!["u1".to_owned(), "u2".to_owned()]
+        );
+        let res = dispatch(cmd, &store);
+        assert_res_ok(res, &[10.into(), 8.into()], &[]);
+    }
+
+    #[test]
+    fn hexists_should_work() {
+        let store = MemTable::new();
+        let cmd = CommandRequest::new_hset("score", "u1", "10".into());
+        dispatch(cmd, &store);
+
+        let cmd = CommandRequest::new_hexists("score", "u1");
+        let res = dispatch(cmd, &store);
+        assert_res_ok(res, &[true.into()], &[]);
+
+        let cmd = CommandRequest::new_hexists("score", "u2");
+        let res = dispatch(cmd, &store);
+        assert_res_ok(res, &[false.into()], &[]);
+    }
+
+    #[test]
+    fn hmexists_should_work() {
+        let store = MemTable::new();
+        let cmd = CommandRequest::new_hset(
+            "score",
+            "u1", 10.into()
+        );
+        dispatch(cmd, &store);
+        let cmd = CommandRequest::new_hmexists(
+            "score",
+            vec!["u1".to_owned(), "u2".to_owned()]
+        );
+        let res = dispatch(cmd, &store);
+        assert_res_ok(res, &[true.into(), false.into()], &[]);
+    }
+
     fn dispatch(cmd: CommandRequest, store: &impl Storage) -> CommandResponse {
         match cmd.request_data.unwrap() {
             RequestData::Hget(v) => v.execute(store),
-            RequestData::Hset(v) => v.execute(store),
+            RequestData::Hmget(v) => v.execute(store),
             RequestData::Hgetall(v) => v.execute(store),
-            _ => unimplemented!(),
+            RequestData::Hset(v) => v.execute(store),
+            RequestData::Hmset(v) => v.execute(store),
+            RequestData::Hdel(v) => v.execute(store),
+            RequestData::Hmdel(v) => v.execute(store),
+            RequestData::Hexists(v) => v.execute(store),
+            RequestData::Hmexists(v) => v.execute(store),
+            v => {
+                println!("{:?}", v);
+                unimplemented!()
+            },
         }
     }
 

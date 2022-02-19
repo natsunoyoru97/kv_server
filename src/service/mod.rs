@@ -31,12 +31,14 @@ pub struct ServiceInner<Store> {
 }
 
 impl<Store: Storage> Service<Store> {
+    /// Construct a new Service struct
     pub fn new(store: Store) -> Self {
         Self {
             inner: Arc::new(ServiceInner { store }),
         }
     }
 
+    /// Execute the hooks
     pub fn execute(&self, cmd: CommandRequest) -> CommandResponse {
         debug!("Got request: {:?}", cmd);
         // TODO: 发送 on_received 事件
@@ -52,6 +54,7 @@ impl<Store: Storage> Service<Store> {
 pub fn dispatch(cmd: CommandRequest, store: &impl Storage) -> CommandResponse {
     match cmd.request_data {
         Some(RequestData::Hget(param)) => param.execute(store),
+        Some(RequestData::Hmget(param)) => param.execute(store),
         Some(RequestData::Hgetall(param)) => param.execute(store),
         Some(RequestData::Hset(param)) => param.execute(store),
         None => KvError::InvalidCommand("Request has no data".to_owned()).into(),
