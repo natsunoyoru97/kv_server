@@ -26,15 +26,15 @@ pub struct StorageIter<T> {
 
 impl<T> StorageIter<T> {
     /// Initialize a new StorageIter
-    pub fn new(data: T) -> Self { 
+    pub fn new(data: T) -> Self {
         Self { data }
     }
 }
 
-impl<T> Iterator for StorageIter<T> 
+impl<T> Iterator for StorageIter<T>
 where
     T: Iterator,
-    T::Item: Into<Kvpair>
+    T::Item: Into<Kvpair>,
 {
     type Item = Kvpair;
 
@@ -115,7 +115,7 @@ mod tests {
         let mut data: Vec<_> = store.get_iter("t2").unwrap().collect();
         data.sort_by(|a, b| a.partial_cmp(b).unwrap());
         assert_eq!(
-            data, 
+            data,
             vec![
                 Kvpair::new("k1", "v1".into()),
                 Kvpair::new("k2", "v2".into())

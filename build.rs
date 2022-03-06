@@ -1,4 +1,3 @@
-
 fn main() {
     let mut config = prost_build::Config::new();
     config.bytes(&["."]);

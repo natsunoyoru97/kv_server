@@ -17,7 +17,7 @@ pub enum KvError {
     #[error("Cannot process command {0} with table: {1}, key: {2}, Error: {3}")]
     /// Other errors with the table
     StorageError(&'static str, String, String, String),
-    
+
     #[error("Failed to encode protobuf message")]
     /// Error in encoding protobuf
     EncodeError(#[from] prost::EncodeError),
@@ -26,8 +26,7 @@ pub enum KvError {
     DecodeError(#[from] prost::DecodeError),
 
     // TODO: 添加 JSON 处理的 Error
-
     #[error("Internal error: {0}")]
     /// Any other errors
-    Internal(String)
+    Internal(String),
 }

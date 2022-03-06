@@ -50,10 +50,12 @@ impl CommandService for Hmset {
         let table = self.table;
         self.pairs
             .into_iter()
-            .map(|pair| match store.set(&table, pair.key, pair.value.unwrap_or_default()) {
-                Ok(Some(v)) => v,
-                _ => Value::default(),
-            })
+            .map(
+                |pair| match store.set(&table, pair.key, pair.value.unwrap_or_default()) {
+                    Ok(Some(v)) => v,
+                    _ => Value::default(),
+                },
+            )
             .collect::<Vec<_>>()
             .into()
     }
@@ -86,7 +88,7 @@ impl CommandService for Hexists {
     fn execute(self, store: &impl Storage) -> CommandResponse {
         match store.contains(&self.table, self.key.as_str()) {
             Ok(v) => v.into(),
-            Err(e) => e.into(), 
+            Err(e) => e.into(),
         }
     }
 }
@@ -98,7 +100,7 @@ impl CommandService for Hmexists {
             .into_iter()
             .map(|key| match store.contains(table.as_str(), key.as_str()) {
                 Ok(v) => v.into(),
-                _ => Value::default(), 
+                _ => Value::default(),
             })
             .collect::<Vec<_>>()
             .into()
@@ -122,8 +124,11 @@ mod tests {
     fn hmset_should_work() {
         let store = MemTable::new();
         let cmd = CommandRequest::new_hmset(
-            "t1", 
-            vec![Kvpair::new("hello", "world".into()), Kvpair::new("hello", "natsu".into())]
+            "t1",
+            vec![
+                Kvpair::new("hello", "world".into()),
+                Kvpair::new("hello", "natsu".into()),
+            ],
         );
         let res = dispatch(cmd.clone(), &store);
         assert_res_ok(res, &[Value::default(), "world".into()], &[]);
@@ -151,8 +156,8 @@ mod tests {
     fn hmget_should_work() {
         let store = MemTable::new();
         let cmd = CommandRequest::new_hmset(
-            "score", 
-            vec![Kvpair::new("u1", 10.into()), Kvpair::new("u2", 8.into())]
+            "score",
+            vec![Kvpair::new("u1", 10.into()), Kvpair::new("u2", 8.into())],
         );
         dispatch(cmd, &store);
         let cmd = CommandRequest::new_hmget("score", vec!["u1".to_owned(), "u2".to_owned()]);
@@ -198,13 +203,10 @@ mod tests {
         let store = MemTable::new();
         let cmd = CommandRequest::new_hmset(
             "score",
-            vec![Kvpair::new("u1", 10.into()), Kvpair::new("u2", 8.into())]
+            vec![Kvpair::new("u1", 10.into()), Kvpair::new("u2", 8.into())],
         );
         dispatch(cmd, &store);
-        let cmd = CommandRequest::new_hmdel(
-            "score", 
-            vec!["u1".to_owned(), "u2".to_owned()]
-        );
+        let cmd = CommandRequest::new_hmdel("score", vec!["u1".to_owned(), "u2".to_owned()]);
         let res = dispatch(cmd, &store);
         assert_res_ok(res, &[10.into(), 8.into()], &[]);
     }
@@ -227,15 +229,9 @@ mod tests {
     #[test]
     fn hmexists_should_work() {
         let store = MemTable::new();
-        let cmd = CommandRequest::new_hset(
-            "score",
-            "u1", 10.into()
-        );
+        let cmd = CommandRequest::new_hset("score", "u1", 10.into());
         dispatch(cmd, &store);
-        let cmd = CommandRequest::new_hmexists(
-            "score",
-            vec!["u1".to_owned(), "u2".to_owned()]
-        );
+        let cmd = CommandRequest::new_hmexists("score", vec!["u1".to_owned(), "u2".to_owned()]);
         let res = dispatch(cmd, &store);
         assert_res_ok(res, &[true.into(), false.into()], &[]);
     }

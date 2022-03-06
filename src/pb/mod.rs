@@ -10,10 +10,10 @@ use prost::Message;
 use crate::KvError;
 
 impl CommandRequest {
-    /// Create HSET 
+    /// Create HSET
     pub fn new_hset(table: impl Into<String>, key: impl Into<String>, value: Value) -> Self {
         Self {
-            request_data: Some(RequestData::Hset(Hset { 
+            request_data: Some(RequestData::Hset(Hset {
                 table: table.into(),
                 pair: Some(Kvpair::new(key, value)),
             })),
@@ -30,7 +30,7 @@ impl CommandRequest {
         }
     }
 
-    /// Create HGET 
+    /// Create HGET
     pub fn new_hget(table: impl Into<String>, key: impl Into<String>) -> Self {
         Self {
             request_data: Some(RequestData::Hget(Hget {
@@ -50,12 +50,12 @@ impl CommandRequest {
         }
     }
 
-    /// Create HGETALL 
+    /// Create HGETALL
     pub fn new_hgetall(table: impl Into<String>) -> Self {
         Self {
             request_data: Some(RequestData::Hgetall(Hgetall {
                 table: table.into(),
-            }))
+            })),
         }
     }
 
@@ -65,7 +65,7 @@ impl CommandRequest {
             request_data: Some(RequestData::Hdel(Hdel {
                 table: table.into(),
                 key: key.into(),
-            }))
+            })),
         }
     }
 
@@ -75,7 +75,7 @@ impl CommandRequest {
             request_data: Some(RequestData::Hmdel(Hmdel {
                 table: table.into(),
                 keys: keys,
-            }))
+            })),
         }
     }
 
@@ -85,17 +85,17 @@ impl CommandRequest {
             request_data: Some(RequestData::Hexists(Hexists {
                 table: table.into(),
                 key: key.into(),
-            }))
+            })),
         }
     }
 
     /// Create HMEXISTS
     pub fn new_hmexists(table: impl Into<String>, keys: Vec<String>) -> Self {
-        Self { 
+        Self {
             request_data: Some(RequestData::Hmexists(Hmexists {
                 table: table.into(),
                 keys: keys,
-            }))
+            })),
         }
     }
 }
@@ -212,7 +212,7 @@ impl From<KvError> for CommandResponse {
         match e {
             KvError::NotFound(_, _) => result.status = StatusCode::NOT_FOUND.as_u16() as _,
             KvError::InvalidCommand(_) => result.status = StatusCode::BAD_REQUEST.as_u16() as _,
-            _ => {},
+            _ => {}
         }
 
         result
