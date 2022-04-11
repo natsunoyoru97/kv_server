@@ -6,6 +6,34 @@ use tracing::debug;
 
 mod command_service;
 
+/// Notify immutable events
+pub trait Notify<Arg> {
+    fn notify(&self, arg: &Arg);
+}
+
+impl<Arg> Notify<Arg> for Vec<fn(&Arg)> {
+    #[inline]
+    fn notify(&self, arg: &Arg) {
+        for f in self {
+            f(arg)
+        }
+    }
+}
+
+/// Notify mutable events
+pub trait NotifyMut<Arg> {
+    fn notify(&self, arg: &mut Arg);
+}
+
+impl<Arg> NotifyMut<Arg> for Vec<fn(&mut Arg)> {
+    #[inline]
+    fn notify(&self, arg: &mut Arg) {
+        for f in self {
+            f(arg)
+        }
+    }
+}
+
 /// 对 Command 的处理的抽象
 pub trait CommandService {
     /// 处理 Command，返回 Response
@@ -25,28 +53,70 @@ impl<Store> Clone for Service<Store> {
     }
 }
 
+impl<Store: Storage> Service<Store> {
+    pub fn execute(&self, cmd: CommandRequest) -> CommandResponse {
+        debug!("Git request: {:?}", cmd);
+        self.inner.on_received.notify(&cmd);
+        let mut res = dispatch(cmd, &self.inner.store);
+        debug!("Executed response: {:?}", res);
+        self.inner.on_executed.notify(&res);
+        self.inner.on_before_send.notify(&mut res);
+        if !self.inner.on_before_send.is_empty() {
+            debug!("Modified response: {:?}", res);
+        }
+
+        res
+    }
+}
+
 /// Service 内部数据结构
 pub struct ServiceInner<Store> {
     store: Store,
+    on_received: Vec<fn(&CommandRequest)>,
+    on_executed: Vec<fn(&CommandResponse)>,
+    on_before_send: Vec<fn(&mut CommandResponse)>,
+    on_after_send: Vec<fn()>,
 }
 
-impl<Store: Storage> Service<Store> {
-    /// Construct a new Service struct
+impl<Store: Storage> ServiceInner<Store> {
+    /// Create a service containing the storage and hooks
     pub fn new(store: Store) -> Self {
-        Self {
-            inner: Arc::new(ServiceInner { store }),
+        Self { 
+            store,
+            on_received: Vec::new(),
+            on_executed: Vec::new(),
+            on_before_send: Vec::new(),
+            on_after_send: Vec::new(),
         }
     }
 
-    /// Execute the hooks
-    pub fn execute(&self, cmd: CommandRequest) -> CommandResponse {
-        debug!("Got request: {:?}", cmd);
-        // TODO: 发送 on_received 事件
-        let res = dispatch(cmd, &self.inner.store);
-        debug!("Executed response: {:?}", res);
-        // TODO: 发送 on_exxecuted 事件
+    pub fn fn_received(mut self, f: fn(&CommandRequest)) -> Self {
+        self.on_received.push(f);
+        self
+    }
 
-        res
+    pub fn fn_executed(mut self, f: fn(&CommandResponse)) -> Self {
+        self.on_executed.push(f);
+        self
+    }
+
+    pub fn fn_before_send(mut self, f: fn(&mut CommandResponse)) -> Self {
+        self.on_before_send.push(f);
+        self
+    }
+
+    pub fn fn_after_send(mut self, f: fn()) -> Self {
+        self.on_after_send.push(f);
+        self
+    }
+}
+
+impl<Store: Storage> From<ServiceInner<Store>> for Service<Store> {
+    /// Construct a new Service struct
+    fn from(inner: ServiceInner<Store>) -> Self {
+        Self {
+            inner: Arc::new(inner),
+        }
     }
 }
 
@@ -74,7 +144,7 @@ mod tests {
     #[test]
     fn service_should_works() {
         // 我们需要一个 service 结构至少包含 Storage
-        let service = Service::new(MemTable::default());
+        let service: Service = ServiceInner::new(MemTable::default()).into();
 
         // service 可以运行在多线程环境下，它的 clone 应该是轻量级的
         let cloned = service.clone();
@@ -105,7 +175,7 @@ mod tests {
         let service: Service = ServiceInner::new(MemTable::default())
             .fn_received(|_: &CommandRequest| {})
             .fn_received(b)
-            .fn_received(c)
+            .fn_executed(c)
             .fn_before_send(d)
             .fn_after_send(e)
             .into();
